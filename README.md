@@ -45,8 +45,9 @@ docker run --name extractor -d \
   -v /var/run/docker.socket:/var/run/docker.socket \
   estivadorio/traefik-certificate-extractor 
 ```
-Mount the whole folder containing the traefik certificate file (`acme.json`) as `/app/data`. The extracted certificates are going to be written to `/app/certs`. Additionaly this script will export combined key and cert into `combined.pem` file that can be used, i.e., for [Cockpit](https://cockpit-project.org).
-The docker socket is used to find any containers with this label: `com.github.Estivador.traefik-certificate-extractor.restart_domain=<DOMAIN>`.
+Mount the whole folder containing the traefik certificate file (`acme.json`) as `/app/data`. The extracted certificates are going to be written to `/app/certs`. Additionally this script will export combined key and cert into `combined.pem` file that can be used, i.e., for [Cockpit](https://cockpit-project.org).
+
+The Docker socket is used to find any containers with this label: `com.github.Estivador.traefik-certificate-extractor.restart_domain=<DOMAIN>`.
 If the domains of an extracted certificate and the restart domain matches, the container is restarted. Multiple domains can be given seperated by `,`.
 
 ## Output
