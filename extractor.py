@@ -125,7 +125,7 @@ def createCerts(args):
             name = c['domain']['main']
             privatekey = c['key']
             fullchain = c['certificate']
-            if 'sans' in c['domain']
+            if 'sans' in c['domain']:
                 sans = c['domain']['sans']
             else:
                 sans = None

@@ -1,6 +1,6 @@
 # Traefik Certificate Extractor
 
-Tool to extract Let's Encrypt certificates from [Traefik](https://traefik.io/)'s ACME storage file. Can automatically restart containers using the Docker API.
+Tool to extract Let's Encrypt certificates from [Traefik](https://traefik.io/)'s ACME storage file. Compatible with Traefik v1 and v2. Can automatically restart containers using the Docker API.
 
 Originaly developed by [Daniel Huisman](https://github.com/DanielHuisman/traefik-certificate-extractor) and improved by [Marc Brückner](https://github.com/SnowMB).
 
