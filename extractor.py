@@ -89,6 +89,15 @@ def createCerts(args):
     # Read JSON file
     data = json.loads(open(args.certificate).read())
 
+    # Determine Traefik version, extract data dictonary
+    key = 'Account'
+    if not key in data:
+        root_key = list(data.keys())[0]
+        data = data[root_key]
+        traefik_version = 2
+    else:
+        traefik_version = 1
+
     # Determine ACME version
     acme_version = 2 if 'acme-v02' in data['Account']['Registration']['uri'] else 1
 
@@ -107,11 +116,19 @@ def createCerts(args):
             privatekey = c['Certificate']['PrivateKey']
             fullchain = c['Certificate']['Certificate']
             sans = c['Domains']['SANs']
-        elif acme_version == 2:
+        elif acme_version == 2 and traefik_version == 1:
             name = c['Domain']['Main']
             privatekey = c['Key']
             fullchain = c['Certificate']
             sans = c['Domain']['SANs']
+        elif acme_version and traefik_version == 2:
+            name = c['domain']['main']
+            privatekey = c['key']
+            fullchain = c['certificate']
+            if 'sans' in c['domain']:
+                sans = c['domain']['sans']
+            else:
+                sans = None
 
         if (args.include and name not in args.include) or (args.exclude and name in args.exclude):
             continue
