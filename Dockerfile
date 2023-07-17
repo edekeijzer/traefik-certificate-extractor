@@ -1,5 +1,5 @@
 # Use Python on Alpine Linux as base image
-FROM python:alpine
+FROM python:3.11-alpine
 
 # Create working directory
 RUN mkdir -p /app
@@ -12,7 +12,7 @@ COPY requirements.txt /app
 RUN pip3 install -r requirements.txt
 
 # Copy app source
-COPY . /app
+COPY extractor.py /app
 
 # Define entrypoint of the app
 ENTRYPOINT ["python3", "-u", "extractor.py", "-c", "data/acme.json", "-d", "certs"]
