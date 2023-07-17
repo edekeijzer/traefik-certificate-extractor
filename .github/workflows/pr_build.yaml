@@ -4,8 +4,6 @@ jobs:
   build-image:
     name: Build Docker and push image
     runs-on: ubuntu-latest
-    env:
-      GHCR_PAT: ${{secrets.GITHUB_TOKEN}}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -30,7 +28,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_PAT }}
+          password: ${{ github.token }}
       - name: Build image and push to GitHub Container Registry
         uses: docker/build-push-action@v3
         with:
