@@ -43,7 +43,7 @@ docker run --name extractor -d \
   -v /opt/traefik:/app/data \
   -v ./certs:/app/certs \
   -v /var/run/docker.socket:/var/run/docker.socket \
-  estivadorio/traefik-certificate-extractor 
+  ghcr.io/estivador/traefik-certificate-extractor
 ```
 Mount the whole folder containing the traefik certificate file (`acme.json`) as `/app/data`. The extracted certificates are going to be written to `/app/certs`. Additionally this script will export combined key and cert into `combined.pem` file that can be used, i.e., for [Cockpit](https://cockpit-project.org) by correctly linking it to its certificate store.
 
