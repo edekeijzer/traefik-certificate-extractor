@@ -1,7 +1,7 @@
 name: Main Branch CI Image Build
 on:
   push:
-    branches: main
+    branches: master
 jobs:
   build-image:
     name: Build and push Docker image
