@@ -252,6 +252,9 @@ if __name__ == "__main__":
 
     # Create event handler and observer
     event_handler = Handler(args)
+    event_handler.doTheWork()
+    exit(1)
+
     observer = Observer()
 
     # Register the directory to watch
