@@ -1,5 +1,5 @@
 # Use Python on Alpine Linux as base image
-FROM python:3.11-alpine
+FROM python:alpine
 
 # Create working directory
 RUN mkdir -p /app
