@@ -173,59 +173,101 @@ class Handler(FileSystemEventHandler):
             chain = fullchain[start:]
 
             if not self.args.dry:
+                files_changed = False
                 # Create domain     directory if it doesn't exist
                 if not directory.exists():
                     directory.mkdir()
 
                 if self.args.flat:
+                    privatekey_file = f"{directory}/{name}.key"
+                    fullchain_file = f"{directory}/{name}.crt"
+                    chain_file = f"{directory}/{name}.chain.pem"
                     # Write private key, certificate and chain to flat files
-                    with (directory / (name + '.key')).open('w') as f:
-                        f.write(privatekey)
-                    with (directory / (name + '.crt')).open('w') as f:
-                        f.write(fullchain)
-                    with (directory / (name + '.chain.pem')).open('w') as f:
-                        f.write(chain)
 
-                    if sans:
-                        for name in sans:
-                            with (directory / (name + '.key')).open('w') as f:
-                                f.write(privatekey)
-                            with (directory / (name + '.crt')).open('w') as f:
-                                f.write(fullchain)
-                            with (directory / (name + '.chain.pem')).open('w') as f:
-                                f.write(chain)
+                    # if sans:
+                    #     for name in sans:
+                    #         with (directory / (name + '.key')).open('w') as f:
+                    #             f.write(privatekey)
+                    #         with (directory / (name + '.crt')).open('w') as f:
+                    #             f.write(fullchain)
+                    #         with (directory / (name + '.chain.pem')).open('w') as f:
+                    #             f.write(chain)
                 else:
                     directory = directory / name
                     if not directory.exists():
                         print(f"DEBUG : Create dir: {directory}")
                         directory.mkdir()
 
-                    # Write private key, certificate and chain to file
-                    with (directory / 'privkey.pem').open('w') as f:
-                        f.write(privatekey)
+                    privatekey_file = f"{directory}/privkey.pem"
+                    cert_file = f"{directory}/cert.pem"
+                    fullchain_file = f"{directory}/fullchain.pem"
+                    combined_file = f"{directory}/combined.pem"
+                    chain_file = f"{directory}/chain.pem"
 
-                    with (directory / 'cert.pem').open('w') as f:
-                        f.write(cert)
+                    if not self.checkHash(fullchain, fullchain_file):
+                        files_changed = True
+                        with (fullchain_file).open('w') as f:
+                            f.write(fullchain)
+                    else:
+                        print(f"Hash not changed for {fullchain_file}")
 
-                    with (directory / 'chain.pem').open('w') as f:
-                        f.write(chain)
+                    if not self.checkHash(privatekey, privatekey_file):
+                        files_changed = True
+                        # Write private key, certificate and chain to file
+                        with (privatekey_file).open('w') as f:
+                            f.write(privatekey)
+                    else:
+                        print(f"Hash not changed for {privatekey_file}")
 
-                    with (directory / 'combined.pem').open('w') as f:
-                        f.write(privatekey)
-                        f.write(cert)
+                    if not self.checkHash(chain, chain_file):
+                        files_changed = True
+                        with (chain_file).open('w') as f:
+                            f.write(chain)
+                    else:
+                        print(f"Hash not changed for {chain_file}")
 
-                    with (directory / 'fullchain.pem').open('w') as f:
-                        f.write(fullchain)
+                    if not self.args.flat:
+                        if not self.checkHash(cert, cert_file):
+                            files_changed = True
+                            with (cert_file).open('w') as f:
+                                f.write(cert)
+                        else:
+                            print(f"Hash not changed for {cert_file}")
+
+                        combined_data = privatekey + cert
+                        if not self.checkHash(combined_data, combined_file):
+                            files_changed = True
+                            with (combined_file).open('w') as f:
+                                f.write(combined_data)
+                        else:
+                            print(f"Hash not changed for {combined_file}")
 
             print('Extracted certificate for: ' + name +
                 (', ' + ', '.join(sans) if sans else ''))
             names.append(name)
-            if args.flat:
-                self.doHook(f"post_cert_flat {name} {directory}")
+
+            if files_changed:
+                if args.flat:
+                    self.doHook(f"post_cert_flat {name} {directory}")
+                else:
+                    self.doHook(f"post_cert {name} {directory}")
             else:
-                self.doHook(f"post_cert {name} {directory}")
+              print("Files not changed, skipping hooks")
 
         return names
+
+    def checkHash(self, data, filepath):
+        if not os_path.exists(filepath):
+            return False
+        with open(filepath, 'r') as f:
+            file_data = f.read()
+            hasher = sha1()
+            hasher.update(file_data.encode('ascii'))
+            file_hash = hasher.hexdigest()
+            hasher = sha1()
+            hasher.update(data.encode('ascii'))
+            data_hash = hasher.hexdigest()
+        return data_hash == file_hash
 
     def doTheWork(self):
         print('DEBUG : starting the work')
