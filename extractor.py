@@ -1,17 +1,18 @@
 import sys
-import os
 import errno
 import time
-import json
-import docker
 import threading
 import argparse
+# import docker
 from argparse import ArgumentTypeError as err
+from os import path as os_path, system as os_system
+from docker import from_env as docker_from_env
 from base64 import b64decode
+from json import loads as json_loads
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from pathlib import Path
-
+from hashlib import sha1
 
 class PathType(object):
     def __init__(self, exists=True, type='file', dash_ok=True):
@@ -33,7 +34,7 @@ class PathType(object):
 
     def __call__(self, string):
         if string == '-':
-            # the special argument "-" means sys.std{in,out}
+            # the special argument "-" means sys.{in,out}
             if self._type == 'dir':
                 raise err(
                     'standard input/output (-) not allowed as directory path')
@@ -43,7 +44,7 @@ class PathType(object):
             elif not self._dash_ok:
                 raise err('standard input/output (-) not allowed')
         else:
-            e = os.path.exists(string)
+            e = os_path.exists(string)
             if self._exists == True:
                 if not e:
                     raise err("path does not exist: '%s'" % string)
@@ -51,13 +52,13 @@ class PathType(object):
                 if self._type is None:
                     pass
                 elif self._type == 'file':
-                    if not os.path.isfile(string):
+                    if not os_path.isfile(string):
                         raise err("path is not a file: '%s'" % string)
                 elif self._type == 'symlink':
-                    if not os.path.symlink(string):
+                    if not os_path.symlink(string):
                         raise err("path is not a symlink: '%s'" % string)
                 elif self._type == 'dir':
-                    if not os.path.isdir(string):
+                    if not os_path.isdir(string):
                         raise err("path is not a directory: '%s'" % string)
                 elif not self._type(string):
                     raise err("path not valid: '%s'" % string)
@@ -65,131 +66,13 @@ class PathType(object):
                 if self._exists == False and e:
                     raise err("path exists: '%s'" % string)
 
-                p = os.path.dirname(os.path.normpath(string)) or '.'
-                if not os.path.isdir(p):
+                p = os_path.dirname(os_path.normpath(string)) or '.'
+                if not os_path.isdir(p):
                     raise err("parent path is not a directory: '%s'" % p)
-                elif not os.path.exists(p):
+                elif not os_path.exists(p):
                     raise err("parent directory does not exist: '%s'" % p)
 
         return string
-
-
-def restartContainerWithDomains(domains):
-    client = docker.from_env()
-    container = client.containers.list(filters = {"label" : "com.github.Estivador.traefik-certificate-extractor.restart_domain"})
-    for c in container:
-        restartDomains = str.split(c.labels["com.github.Estivador.traefik-certificate-extractor.restart_domain"], ',')
-        if not set(domains).isdisjoint(restartDomains):
-            print('restarting container ' + c.id)
-            if not args.dry:
-                c.restart()
-
-
-def createCerts(args):
-    # Read JSON file
-    data = json.loads(open(args.certificate).read())
-
-    # Determine Traefik version, extract data dictonary
-    key = 'Account'
-    if not key in data:
-        root_key = list(data.keys())[0]
-        data = data[root_key]
-        traefik_version = 2
-    else:
-        traefik_version = 1
-
-    # Determine ACME version
-    acme_version = 2 if 'acme-v02' in data['Account']['Registration']['uri'] else 1
-
-    # Find certificates
-    if acme_version == 1:
-        certs = data['DomainsCertificate']['Certs']
-    elif acme_version == 2:
-        certs = data['Certificates']
-
-    # Loop over all certificates
-    names = []
-
-    for c in certs:
-        if acme_version == 1:
-            name = c['Certificate']['Domain']
-            privatekey = c['Certificate']['PrivateKey']
-            fullchain = c['Certificate']['Certificate']
-            sans = c['Domains']['SANs']
-        elif acme_version == 2 and traefik_version == 1:
-            name = c['Domain']['Main']
-            privatekey = c['Key']
-            fullchain = c['Certificate']
-            sans = c['Domain']['SANs']
-        elif acme_version and traefik_version == 2:
-            name = c['domain']['main']
-            privatekey = c['key']
-            fullchain = c['certificate']
-            if 'sans' in c['domain']:
-                sans = c['domain']['sans']
-            else:
-                sans = None
-
-        if (args.include and name not in args.include) or (args.exclude and name in args.exclude):
-            continue
-
-        # Decode private key, certificate and chain
-        privatekey = b64decode(privatekey).decode('utf-8')
-        fullchain = b64decode(fullchain).decode('utf-8')
-        start = fullchain.find('-----BEGIN CERTIFICATE-----', 1)
-        cert = fullchain[0:start]
-        chain = fullchain[start:]
-
-        if not args.dry:
-            # Create domain     directory if it doesn't exist
-            directory = Path(args.directory)
-            if not directory.exists():
-                directory.mkdir()
-
-            if args.flat:
-                # Write private key, certificate and chain to flat files
-                with (directory / (name + '.key')).open('w') as f:
-                    f.write(privatekey)
-                with (directory / (name + '.crt')).open('w') as f:
-                    f.write(fullchain)
-                with (directory / (name + '.chain.pem')).open('w') as f:
-                    f.write(chain)
-
-                if sans:
-                    for name in sans:
-                        with (directory / (name + '.key')).open('w') as f:
-                            f.write(privatekey)
-                        with (directory / (name + '.crt')).open('w') as f:
-                            f.write(fullchain)
-                        with (directory / (name + '.chain.pem')).open('w') as f:
-                            f.write(chain)
-            else:
-                directory = directory / name
-                if not directory.exists():
-                    directory.mkdir()
-
-                # Write private key, certificate and chain to file
-                with (directory / 'privkey.pem').open('w') as f:
-                    f.write(privatekey)
-
-                with (directory / 'cert.pem').open('w') as f:
-                    f.write(cert)
-
-                with (directory / 'chain.pem').open('w') as f:
-                    f.write(chain)
-
-                with (directory / 'combined.pem').open('w') as f:
-                    f.write(privatekey)
-                    f.write(cert)
-
-                with (directory / 'fullchain.pem').open('w') as f:
-                    f.write(fullchain)
-
-        print('Extracted certificate for: ' + name +
-              (', ' + ', '.join(sans) if sans else ''))
-        names.append(name)
-    return names
-
 
 class Handler(FileSystemEventHandler):
 
@@ -217,34 +100,168 @@ class Handler(FileSystemEventHandler):
                     self.timer = threading.Timer(2, self.doTheWork)
                     self.timer.start()
 
+    def restartContainerWithDomains(self, domains):
+        client = docker_from_env()
+        container = client.containers.list(filters = {"label" : self.args.restart_container_label})
+        for c in container:
+            restartDomains = str.split(c.labels[self.args.restart_container_label], ',')
+            if not set(domains).isdisjoint(restartDomains):
+                print('restarting container ' + c.id)
+                if not self.args.dry:
+                    c.restart()
+
+    def createCerts(self):
+        # Read JSON file
+        data = json_loads(open(self.args.certificate).read())
+
+        # Determine Traefik version, extract data dictonary
+        key = 'Account'
+        if not key in data:
+            root_key = list(data.keys())[0]
+            data = data[root_key]
+            traefik_version = 2
+        else:
+            traefik_version = 1
+
+        # Determine ACME version
+        acme_version = 2 if 'acme-v02' in data['Account']['Registration']['uri'] else 1
+
+        # Find certificates
+        if acme_version == 1:
+            certs = data['DomainsCertificate']['Certs']
+        elif acme_version == 2:
+            certs = data['Certificates']
+
+        # Loop over all certificates
+        names = []
+
+        for c in certs:
+            if acme_version == 1:
+                name = c['Certificate']['Domain']
+                privatekey = c['Certificate']['PrivateKey']
+                fullchain = c['Certificate']['Certificate']
+                sans = c['Domains']['SANs']
+            elif acme_version == 2 and traefik_version == 1:
+                name = c['Domain']['Main']
+                privatekey = c['Key']
+                fullchain = c['Certificate']
+                sans = c['Domain']['SANs']
+            elif acme_version and traefik_version == 2:
+                name = c['domain']['main']
+                privatekey = c['key']
+                fullchain = c['certificate']
+                if 'sans' in c['domain']:
+                    sans = c['domain']['sans']
+                else:
+                    sans = None
+
+            if (self.args.include and name not in self.args.include) or (self.args.exclude and name in self.args.exclude):
+                continue
+
+            directory = Path(self.args.directory)
+
+            if self.args.flat:
+                self.doHook(f"pre_cert_flat {name} {directory}")
+            else:
+                self.doHook(f"pre_cert {name} {directory / name}")
+
+            # Decode private key, certificate and chain
+            privatekey = b64decode(privatekey).decode('utf-8')
+            fullchain = b64decode(fullchain).decode('utf-8')
+            start = fullchain.find('-----BEGIN CERTIFICATE-----', 1)
+            cert = fullchain[0:start]
+            chain = fullchain[start:]
+
+            if not self.args.dry:
+                # Create domain     directory if it doesn't exist
+                if not directory.exists():
+                    directory.mkdir()
+
+                if self.args.flat:
+                    # Write private key, certificate and chain to flat files
+                    with (directory / (name + '.key')).open('w') as f:
+                        f.write(privatekey)
+                    with (directory / (name + '.crt')).open('w') as f:
+                        f.write(fullchain)
+                    with (directory / (name + '.chain.pem')).open('w') as f:
+                        f.write(chain)
+
+                    if sans:
+                        for name in sans:
+                            with (directory / (name + '.key')).open('w') as f:
+                                f.write(privatekey)
+                            with (directory / (name + '.crt')).open('w') as f:
+                                f.write(fullchain)
+                            with (directory / (name + '.chain.pem')).open('w') as f:
+                                f.write(chain)
+                else:
+                    directory = directory / name
+                    if not directory.exists():
+                        print(f"DEBUG : Create dir: {directory}")
+                        directory.mkdir()
+
+                    # Write private key, certificate and chain to file
+                    with (directory / 'privkey.pem').open('w') as f:
+                        f.write(privatekey)
+
+                    with (directory / 'cert.pem').open('w') as f:
+                        f.write(cert)
+
+                    with (directory / 'chain.pem').open('w') as f:
+                        f.write(chain)
+
+                    with (directory / 'combined.pem').open('w') as f:
+                        f.write(privatekey)
+                        f.write(cert)
+
+                    with (directory / 'fullchain.pem').open('w') as f:
+                        f.write(fullchain)
+
+            print('Extracted certificate for: ' + name +
+                (', ' + ', '.join(sans) if sans else ''))
+            names.append(name)
+            if args.flat:
+                self.doHook(f"post_cert_flat {name} {directory}")
+            else:
+                self.doHook(f"post_cert {name} {directory}")
+
+        return names
+
     def doTheWork(self):
         print('DEBUG : starting the work')
-        domains = createCerts(self.args)
+        self.doHook('pre_run')
+        domains = self.createCerts()
         if (self.args.restart_container):
-            restartContainerWithDomains(domains)
+            print(f"DEBUG : restart containers tagged with label {self.args.restart_container_label}")
+            self.restartContainerWithDomains(domains)
 
         with self.lock:
             self.isWaiting = False
+
+        self.doHook('post_run')
         print('DEBUG : finished')
+
+    def doHook(self, hook_args):
+        if self.args.hook:
+            hook_out = os_system(f"{self.args.hook} {hook_args}")
+            if hook_out > 0:
+                print(f"DEBUG : '{self.args.hook} {hook_args} returned {hook_out}")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description='Extract traefik letsencrypt certificates.')
-    parser.add_argument('-c', '--certificate', default='acme.json', type=PathType(
-        exists=True), help='file that contains the traefik certificates (default acme.json)')
-    parser.add_argument('-d', '--directory', default='.',
-                        type=PathType(type='dir'), help='output folder')
-    parser.add_argument('-f', '--flat', action='store_true',
-                        help='outputs all certificates into one folder')
-    parser.add_argument('-r', '--restart_container', action='store_true',
-                        help="uses the docker API to restart containers that are labeled with 'com.github.DanielHuisman.traefik-certificate-extractor.restart_domain=<DOMAIN>' if the domain name of a generated certificates matches. Multiple domains can be seperated by ','")
-    parser.add_argument('--dry-run', action='store_true', dest='dry',
-                        help="Don't write files and do not start docker containers.")
+    parser = argparse.ArgumentParser(description='Extract Let\'s Encrypt certificates from Traefik config.')
+    parser.add_argument('-c', '--certificate', default='acme.json', type=PathType(exists=True), help='File that contains the traefik certificates (default: acme.json)')
+    parser.add_argument('-d', '--directory', default='.', type=PathType(type='dir'), help='Output folder')
+    parser.add_argument('-f', '--flat', action='store_true', help='Outputs all certificates into one folder')
+    parser.add_argument('-r', '--restart-container', action='store_true', help="Use the docker API to restart containers that are labeled with 'traefik-certificate-extractor.restart_domain=<DOMAIN>' if the domain name of a generated certificates matches. Multiple domains can be seperated by ','")
+    parser.add_argument('-l', '--restart-container-label', type=ascii, default='traefik-certificate-extractor.restart_domain', help="The Docker label to filter containers for domain names to restart (default: traefik-certificate-extractor.restart_domain)")
+    parser.add_argument('-1','--one-shot', action='store_true', help="Extract certificates and exit")
+    parser.add_argument('--dry-run', action='store_true', dest='dry', help="Don't write files and do not start docker containers.")
+    parser.add_argument('--hook', type=PathType(exists=True), help='Hook to run before/during/after certificate export')
+
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--include', nargs='*')
     group.add_argument('--exclude', nargs='*')
-
     args = parser.parse_args()
 
     print('DEBUG: watching path: ' + str(args.certificate))
@@ -252,8 +269,11 @@ if __name__ == "__main__":
 
     # Create event handler and observer
     event_handler = Handler(args)
-    event_handler.doTheWork()
-    exit(1)
+
+    # When running as single shot, do the work and exit.
+    if args.one_shot:
+        event_handler.doTheWork()
+        exit(0)
 
     observer = Observer()
 
