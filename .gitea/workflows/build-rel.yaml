@@ -1,0 +1,36 @@
+# .gitea/workflows/build-rel.yaml
+name: Build and push Docker image release
+run-name: Build and push release ${{ gitea.ref }} by @${{ gitea.actor }}
+on:
+  release
+jobs:
+  build-push-docker:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      name: Checkout
+      with:
+        token: ${{ secrets.ACTIONS_TOKEN }}
+
+    - uses: docker/login-action@v3
+      name: Login registry
+      with:
+        registry: ${{ vars.DOCKER_REGISTRY }}
+        username: ${{ vars.PACKAGE_USER }}
+        password: ${{ secrets.PACKAGE_TOKEN }}
+    - uses: docker/metadata-action@v4
+      name: Generate names and tags
+      id: meta
+      with:
+        images: |
+          name=${{ vars.DOCKER_REGISTRY }}/${{ gitea.repository }}                              
+        tags: |
+          type=raw,value=latest
+          type=raw,value={{date 'YYYYMMDD'}}                              
+    - uses: docker/build-push-action@v5
+      name: Build and push image
+      with:
+        context: .
+        platforms: linux/amd64
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
