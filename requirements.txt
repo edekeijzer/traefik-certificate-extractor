@@ -1,2 +1,6 @@
-watchdog>=6,<7
+watchfiles>=1,<2
 docker>=7,<8
+pydantic
+pydantic_settings
+email-validator
+pathlib2>=2.3,<3

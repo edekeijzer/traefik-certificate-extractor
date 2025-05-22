@@ -19,6 +19,12 @@ parts/
 sdist/
 var/
 wheels/
+.venv/
 *.egg-info/
 .installed.cfg
 *.egg
+*.json
+id_ed25519*
+**.key
+**fscker*
+**transip-tlsa*

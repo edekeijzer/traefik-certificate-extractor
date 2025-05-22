@@ -1,6 +1,7 @@
 # Use Python on Alpine Linux as base image
 FROM python:alpine
 
+# Add ssh tools so we can copy certs to remote locations
 RUN apk add --no-cache dropbear dropbear-ssh dropbear-scp
 WORKDIR /app
 
@@ -11,8 +12,8 @@ COPY requirements.txt /app
 RUN pip3 install -r requirements.txt
 
 # Copy app source
-COPY extractor.py /app
+COPY app/ /app
 
 # Define entrypoint of the app
-ENTRYPOINT ["python3", "-u", "extractor.py"]
+ENTRYPOINT ["python3", "-u", "/app/extractor.py"]
 CMD ["-c", "data/acme.json", "-d", "certs"]
