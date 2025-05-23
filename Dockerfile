@@ -15,5 +15,5 @@ RUN pip3 install -r requirements.txt
 COPY app/ /app
 
 # Define entrypoint of the app
-ENTRYPOINT ["python3", "-u", "/app/extractor.py"]
-CMD ["-c", "data/acme.json", "-d", "certs"]
+ENTRYPOINT ["python3", "-u", "/app/main.py"]
+CMD []

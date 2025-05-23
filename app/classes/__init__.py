@@ -1,4 +1,3 @@
-from watchdog.events import FileSystemEvent, FileModifiedEvent, FileSystemEventHandler
 from settings import AcmeSettings, CertExtractorSettings, HookSettingsClass
 from typing import List
 from pathlib import Path
@@ -70,7 +69,7 @@ class ShellHook(HookBaseClass):
 
 
 # Build docker logic here
-class DockerHook(BaseClass):
+class DockerHook(HookBaseClass):
   def __init__(self, restart_label: str = 'traefik-cert-extractor.restart-domains', logger: logging.Logger | None = None) -> None:
     self.logger = logger or logging.getLogger(__name__)
     from docker import from_env as docker_from_env
@@ -105,6 +104,11 @@ class CertExtractor(BaseClass):
     self.check_hash = settings.check_hash
     self.hook_dir = settings.hook_dir
     self.hooks: List[callable] = []
+
+    if settings.docker_restart_label:
+      self.logger.debug(f"Add DockerHook with label {settings.docker_restart_label}")
+      _hook = DockerHook(restart_label=settings.docker_restart_label, logger=logger)
+      self.hooks.append(_hook)
 
     with Path(self.hook_dir) as hook_dir:
       for hook in hook_dir.glob('*.sh'):
@@ -221,7 +225,7 @@ class CertExtractor(BaseClass):
           domain = cert.domain.main
           sans = cert.domain.sans
           self.log_info(f"Cert domain: {domain}; SANs: {','.join(sans)}")
-          self.hook(event='pre-cert', domains=([domain] + sans))
+          self.hook(event='pre-cert', resolver=resolver_name, domains=([domain] + sans))
 
           privkey = b64decode(cert.key).decode('utf-8')
           fullchain = b64decode(cert.certificate).decode('utf-8')
@@ -282,7 +286,7 @@ class CertExtractor(BaseClass):
           else:
             self.log_info(f"Domain {domain} was not updated")
 
-    self.hook(event='post', domains=[])
+    self.hook(event='post')
     return updated_domains
 
 
