@@ -61,7 +61,10 @@ class ShellHook(HookBaseClass):
 
     for domain in domains:
       self.logger.info(f"Run {self.hook} for {cert_dir}/{domain}")
-      hook_out = os_system(f"{self.hook} {cert_dir} {domain}")
+      hook_cmd = f"{self.hook} {cert_dir} {domain} {cert_dir}"
+      if file_names is not None:
+        hook_cmd = f"{hook_cmd} {file_names['privkey']} {file_names['cert']} {file_names['fullchain']} {file_names['chain']} {file_names['combined']}"
+      hook_out = os_system(hook_cmd)
       if hook_out == 0:
         self.logger.debug(f"{self.hook} completed successfully for {cert_dir}/{domain}")
       else:
@@ -235,6 +238,7 @@ class CertExtractor(BaseClass):
           _cert_path = _dir.joinpath('cert.pem')
           _chain_path = _dir.joinpath('chain.pem')
           _fullchain_path = _dir.joinpath('fullchain.pem')
+          _combined_path = _dir.joinpath('combined.pem')
 
           if not _dir.exists():
             self.log_info(f"Creating non-existent directory {_dir}")
@@ -272,6 +276,10 @@ class CertExtractor(BaseClass):
             with open(_chain_path, 'w') as file:
               self.log_debug('Write chain.pem')
               file.write(chain)
+            with open(_combined_path, 'w') as file:
+              self.log_debug('Write combined.pem')
+              file.write(privkey)
+              file.write(cert)
 
           if not _hash_check:
             self.log_info(f"Add domain {domain} to updated domains")
@@ -281,6 +289,7 @@ class CertExtractor(BaseClass):
               cert = str(_cert_path),
               chain = str(_chain_path),
               fullchain = str(_fullchain_path),
+              combined = str(_combined_path)
             )
             self.hook(event='update', resolver=resolver_name, domains=([domain] + sans), cert_dir=_dir, file_names=_file_names)
           else:
