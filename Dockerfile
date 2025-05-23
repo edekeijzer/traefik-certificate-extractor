@@ -1,5 +1,5 @@
 # Use Python on Alpine Linux as base image
-FROM python:alpine
+FROM python:3.12-alpine
 
 # Add ssh tools so we can copy certs to remote locations
 RUN apk add --no-cache dropbear dropbear-ssh dropbear-scp
