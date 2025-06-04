@@ -72,8 +72,8 @@ class AcmeCertificate(BaseSettings):
 class AcmeResolver(BaseSettings):
   model_config = SettingsConfigDict()
 
-  Account: AcmeAccount # Don't care about this but I have to map it accordingly
-  Certificates: List[AcmeCertificate]
+  Account: AcmeAccount | None = None
+  Certificates: List[AcmeCertificate] | None = None
 
 
 # class AcmeSettings(BaseSettings):

@@ -219,8 +219,10 @@ class CertExtractor(BaseClass):
         self.log_info(f"Parsing cert resolver: {resolver_name}")
         # resolver_data = cert_data[cert_resolver]
         # resolver_data = AcmeResolver(**resolver_data)
-        # Each resolver has Account and Certificates data
+        # Each resolver has Account and Certificates data, unless it isn't used.
         certificates = resolver_data.Certificates
+        if certificates is None:
+          continue
 
         for cert in certificates:
           # Reset this for each cert/domain. Do I need to deepcopy this?
