@@ -95,7 +95,7 @@ class DockerHook(HookBaseClass):
         if not set(domains).isdisjoint(container_domains):
           try:
             if _command:
-              container.exec_run(_command)
+              container.exec_run(cmd=_command, stdout=True, stderr=True, stdin=True, tty=True)
               self.logger.info(f"Executed command {_command} in container: {container.name} ({container.id})")
             else:
               container.restart()
