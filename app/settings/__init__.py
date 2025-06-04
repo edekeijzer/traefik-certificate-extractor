@@ -57,7 +57,7 @@ class AcmeCertDomain(BaseSettings):
   model_config = SettingsConfigDict()
 
   main: str
-  sans: List | None = None
+  sans: List[str] = []
 
 
 class AcmeCertificate(BaseSettings):
