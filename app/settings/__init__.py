@@ -95,7 +95,8 @@ class CertExtractorSettings(BaseSettings):
   oneshot: bool = False
   startup_extract: bool = True
   docker_restart: bool = False
-  docker_restart_label: Optional[str] = 'traefik-cert-extractor.restart-domains'
+  docker_domain_label: Optional[str] = 'traefik-certificate-extractor.domains'
+  docker_command_label: Optional[str] = 'traefik-certificate-extractor.command'
 
   @model_validator(mode='after')
   def check_mutual_exclusivity(self):

@@ -73,29 +73,36 @@ class ShellHook(HookBaseClass):
 
 # Build docker logic here
 class DockerHook(HookBaseClass):
-  def __init__(self, restart_label: str = 'traefik-cert-extractor.restart-domains', logger: logging.Logger | None = None) -> None:
+  def __init__(self, domain_label: str = 'traefik-certificate-extractor.domains', command_label: str = 'traefik-certificate-extractor.command', logger: logging.Logger | None = None) -> None:
     self.logger = logger or logging.getLogger(__name__)
     from docker import from_env as docker_from_env
     self.client = docker_from_env()
-    self.restart_label = restart_label
+    self.domain_label = domain_label
+    self.command_label = command_label
 
   def __call__(self, event: str, resolver: str = '', domains: List[str] = [], cert_dir: str | None = None, file_names: dict | None = None) -> bool:
     self.logger.debug(f"DockerHook fired, event: {event}, resolver: {resolver}, domains: {','.join(domains)}")
     great_success = True
     if (event == 'update'):
-      containers = self.client.containers.list(filters = {'label' : self.restart_label})
-      self.logger.debug(f"Found {len(containers)} containers with label {self.restart_label}")
+      containers = self.client.containers.list(filters = {'label' : self.domain_label})
+      self.logger.debug(f"Found {len(containers)} containers with label {self.domain_label}")
       for container in containers:
-        container_domains = str.split(container.labels[self.restart_label], ',')
+        container_domains = str.split(container.labels[self.domain_label], ',')
+        if self.command_label in container.labels:
+          _command = container.labels[self.command_label]
 
-        self.logger.debug(f"Found {len(container_domains)} domains for container '{container.name}: {container.labels[self.restart_label]}")
+        self.logger.debug(f"Found {len(container_domains)} domains for container '{container.name}: {container.labels[self.domain_label]}")
         if not set(domains).isdisjoint(container_domains):
-          self.logger.info(f"Restarting container: {container.name} ({container.id})")
-        try:
-          container.restart()
-        except:
-          great_success = False
-          self.logger.error(f"Error restarting container: {container.id}")
+          try:
+            if _command:
+              container.exec_run(_command)
+              self.logger.info(f"Executed command {_command} in container: {container.name} ({container.id})")
+            else:
+              container.restart()
+              self.logger.info(f"Restarted container: {container.name} ({container.id})")
+          except:
+            great_success = False
+            self.logger.error(f"Error processing container: {container.id}")
 
 
 class CertExtractor(BaseClass):
@@ -108,9 +115,9 @@ class CertExtractor(BaseClass):
     self.hook_dir = settings.hook_dir
     self.hooks: List[callable] = []
 
-    if settings.docker_restart_label:
-      self.logger.debug(f"Add DockerHook with label {settings.docker_restart_label}")
-      _hook = DockerHook(restart_label=settings.docker_restart_label, logger=logger)
+    if settings.docker_domain_label:
+      self.logger.debug(f"Add DockerHook with label {settings.docker_domain_label}")
+      _hook = DockerHook(domain_label=settings.docker_domain_label, logger=logger)
       self.hooks.append(_hook)
 
     with Path(self.hook_dir) as hook_dir:
