@@ -11,6 +11,7 @@ on:
     - '**.md'
   schedule:
   - cron: '35 0 * * 1'
+  workflow_dispatch:
 jobs:
   build-push-docker:
     runs-on: ubuntu-latest
