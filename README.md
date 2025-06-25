@@ -32,6 +32,7 @@ Everything is (currently) configured by environment variables. All variables are
 | CHECK_HASH | `bool` | `true` | Should we do a hash compare on the data from Traefik and the target file before writing (and triggering hooks) |
 | ONESHOT | `bool` | `false` | Don't keep running, just do a single process and exit |
 | STARTUP_EXTRACT | `bool` | `true` | Should we process immediately at startup or only act at changes while already running? |
+| DOCKER_COMMAND | `bool` | `false` | Should we scan Docker labels for domain names and commands? |
 | DOCKER_DOMAIN_LABEL | `string` | `traefik-certificate-extractor.domains` | The Docker container label to check for domain names |
 | DOCKER_COMMAND_LABEL | `string` | `traefik-certificate-extractor.command` | The Docker container label to check for the command to execute on the container |
 

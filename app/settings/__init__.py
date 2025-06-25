@@ -94,6 +94,7 @@ class CertExtractorSettings(BaseSettings):
   check_hash: bool = True
   oneshot: bool = False
   startup_extract: bool = True
+  docker_command: bool = False
   docker_domain_label: Optional[str] = 'traefik-certificate-extractor.domains'
   docker_command_label: Optional[str] = 'traefik-certificate-extractor.command'
 

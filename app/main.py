@@ -22,7 +22,7 @@ if __name__ == '__main__':
     logging.getLogger('watchfiles').setLevel(logging.WARNING)
     logging.getLogger('urllib3').setLevel(logging.WARNING)
     ex = CertExtractor(settings=settings, logger=logger)
-    if settings.docker_restart:
+    if settings.docker_command:
       ex.hooks.append(DockerHook(logger=logger))
     if settings.startup_extract or settings.oneshot:
       ex.extract()
