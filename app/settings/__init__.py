@@ -87,10 +87,10 @@ class AcmeSettings(RootModel[dict[str, AcmeResolver]]):
 class CertExtractorSettings(BaseSettings):
   model_config = SettingsConfigDict()
 
-  input_file: FilePath = '/app/input/acme.json'
-  output_dir: DirectoryPath = '/app/output'
+  input_file: FilePath = '/input/acme.json'
+  output_dir: DirectoryPath = '/output'
   output_path_resolver: bool | None = None
-  hook_dir: DirectoryPath = '/app/hooks'
+  hook_dir: DirectoryPath = '/hooks'
   check_hash: bool = True
   oneshot: bool = False
   startup_extract: bool = True

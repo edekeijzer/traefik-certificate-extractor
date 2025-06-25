@@ -25,10 +25,10 @@ Everything is (currently) configured by environment variables. All variables are
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| INPUT_FILE | file path (`string`) | `/app/input/acme.json` | The input file to read certificates from |
-| OUTPUT_DIR | dir path (`string`) | `/app/output` | The output directory to write the extracted certificates into |
+| INPUT_FILE | file path (`string`) | `/input/acme.json` | The input file to read certificates from |
+| OUTPUT_DIR | dir path (`string`) | `/output` | The output directory to write the extracted certificates into |
 | OUTPUT_PATH_RESOLVER | `bool` or `none` | `none` | If true, the resolver name will be part of the directory path. If unset, will be true if there are multiple resolvers, false otherwise. |
-| HOOK_DIR | dir path (`string`) | `/app/hooks` | The path where hook scripts can be placed |
+| HOOK_DIR | dir path (`string`) | `/hooks` | The path where hook scripts can be placed |
 | CHECK_HASH | `bool` | `true` | Should we do a hash compare on the data from Traefik and the target file before writing (and triggering hooks) |
 | ONESHOT | `bool` | `false` | Don't keep running, just do a single process and exit |
 | STARTUP_EXTRACT | `bool` | `true` | Should we process immediately at startup or only act at changes while already running? |
