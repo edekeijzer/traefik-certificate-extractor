@@ -94,7 +94,10 @@ class DockerHook(HookBaseClass):
         self.logger.debug(f"Found {len(container_domains)} domains for container '{container.name}: {container.labels[self.domain_label]}")
         if not set(domains).isdisjoint(container_domains):
           try:
-            if _command:
+            if _command and _command in ['SIGHUP', 'SIGINT']:
+              container.kill(signal=_command)
+              self.logger.info(f"Executed docker kill {_command} for container: {container.name} ({container.id})")
+            elif _command:
               container.exec_run(cmd=_command, stdout=True, stderr=True, stdin=True, tty=True)
               self.logger.info(f"Executed command {_command} in container: {container.name} ({container.id})")
             else:

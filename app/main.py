@@ -7,7 +7,7 @@ import logging
 if __name__ == '__main__':
   from sys import stdout
 
-  logger = logging.getLogger('traefik-cert-extractor')
+  logger = logging.getLogger('traefik-certificate-extractor')
   logger.setLevel(logging.DEBUG)
   handler = logging.StreamHandler(stdout)
   formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
