@@ -87,14 +87,13 @@ class AcmeSettings(RootModel[dict[str, AcmeResolver]]):
 class CertExtractorSettings(BaseSettings):
   model_config = SettingsConfigDict()
 
-  input_file: FilePath
-  output_dir: DirectoryPath
+  input_file: FilePath = '/app/input/acme.json'
+  output_dir: DirectoryPath = '/app/output'
   output_path_resolver: bool | None = None
-  hook_dir: DirectoryPath = './hooks'
+  hook_dir: DirectoryPath = '/app/hooks'
   check_hash: bool = True
   oneshot: bool = False
   startup_extract: bool = True
-  docker_restart: bool = False
   docker_domain_label: Optional[str] = 'traefik-certificate-extractor.domains'
   docker_command_label: Optional[str] = 'traefik-certificate-extractor.command'
 

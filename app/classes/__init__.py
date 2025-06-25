@@ -91,7 +91,7 @@ class DockerHook(HookBaseClass):
         if self.command_label in container.labels:
           _command = container.labels[self.command_label]
 
-        self.logger.debug(f"Found {len(container_domains)} domains for container '{container.name}: {container.labels[self.domain_label]}")
+        self.logger.debug(f"Found {len(container_domains)} domains for container {container.name}: {container.labels[self.domain_label]}")
         if not set(domains).isdisjoint(container_domains):
           try:
             if _command and _command in ['SIGHUP', 'SIGINT']:
