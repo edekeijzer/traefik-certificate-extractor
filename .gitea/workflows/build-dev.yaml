@@ -28,7 +28,7 @@ jobs:
         username: ${{ vars.PACKAGE_USER }}
         password: ${{ secrets.PACKAGE_TOKEN }}
 
-    - uses: docker/metadata-action@v4
+    - uses: docker/metadata-action@v5
       name: Generate names and tags
       id: meta
       with:
@@ -38,7 +38,7 @@ jobs:
           type=ref,event=branch
           type=sha,format=short                    
 
-    - uses: docker/build-push-action@v5
+    - uses: docker/build-push-action@v6
       name: Build and push image
       with:
         context: .
