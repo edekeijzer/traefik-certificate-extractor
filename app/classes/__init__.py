@@ -214,7 +214,7 @@ class CertExtractor(BaseClass):
                     self.logger.debug("Skipping %s: no __call__(hook, cert_dir, resolver, domains)", hook_class.__name__)
 
     def load_module_from_file(self, file_path):
-        """Function"""
+        """Load python module from file"""
         module_name = Path(file_path).stem
         spec = importlib.util.spec_from_file_location(module_name, file_path)
         module = importlib.util.module_from_spec(spec)
@@ -222,7 +222,7 @@ class CertExtractor(BaseClass):
         return module
 
     def get_classes_from_module(self, module):
-        """Function"""
+        """Get classes from python module"""
         return [
             obj
             for name, obj in getmembers(module, isclass)
@@ -231,7 +231,7 @@ class CertExtractor(BaseClass):
         ]
 
     def is_callable_with_args(self, cls, required_args):
-        """Function"""
+        """Is class callable with required arguments"""
         if not hasattr(cls, "__call__"):
             return False
         from inspect import signature
@@ -243,34 +243,28 @@ class CertExtractor(BaseClass):
         param_names = {param.name for param in params}
         return all(arg in param_names for arg in required_args)
 
-    def log(self, msg: str):
-        """Function"""
-        print(msg)
-
     def watch(self, stop_event: StopEvent | None) -> None:
-        """Function"""
+        """Watch file until stop event"""
         from watchfiles import watch, Change
 
         for changes in watch(self.input_file, debug=False, stop_event=stop_event):
             for change_type, file_path in changes:
                 if change_type == Change.modified:
-                    self.logger.info(f"File {file_path} was modified")
+                    self.logger.info("File %s was modified", file_path)
                     self.extract(check_hash=self.check_hash)
                 elif change_type == Change.added:
-                    self.logger.warning(f"File {file_path} was added, this is unexpected")
+                    self.logger.warning("File %s was added, this is unexpected", file_path)
                 elif change_type == Change.deleted:
-                    self.logger.warning(
-                        f"File {file_path} was deleted, this is unexpected"
-                    )
+                    self.logger.warning("File %s was deleted, this is unexpected", file_path)
                 else:
-                    self.logger.error(f"Unknown change type: {str(change_type)}")
+                    self.logger.error("Unknown change type: %s", str(change_type))
 
     def extract(self, check_hash: bool | None = None) -> List[str]:
-        """Function"""
+        """Extract certificates from json"""
         self.hook(event="pre", domains=[])
         if check_hash is None:
             check_hash = self.check_hash
-        self.logger.info(f"Extraction, check_hash = {check_hash}")
+        self.logger.info("Extraction, check_hash = %s", check_hash)
 
         updated_domains = list()
 
@@ -282,12 +276,10 @@ class CertExtractor(BaseClass):
                     self.output_path_resolver = True
                 else:
                     self.output_path_resolver = False
-                self.logger.debug(
-                    f"Found {str(len(cert_data))} resolvers and output_path_resolver not set, defaulting to {str(self.output_path_resolver)}"
-                )
+                self.logger.debug("Found %i resolvers and output_path_resolver not set, defaulting to %s", len(cert_data), str(self.output_path_resolver))
             for resolver_name in cert_data.keys():
                 resolver_data = cert_data[resolver_name]
-                self.logger.info(f"Parsing cert resolver: {resolver_name}")
+                self.logger.info("Parsing cert resolver: %s", resolver_name)
                 # resolver_data = cert_data[cert_resolver]
                 # resolver_data = AcmeResolver(**resolver_data)
                 # Each resolver has Account and Certificates data, unless it isn't used.
@@ -305,7 +297,7 @@ class CertExtractor(BaseClass):
                         self.logger.debug("Skipping wildcard domain")
                         continue
 
-                    self.logger.info(f"Cert domain: {domain}; SANs: {','.join(sans)}")
+                    self.logger.info("Cert domain: %s; SANs: %s", domain, ','.join(sans))
                     self.hook(
                         event="pre-cert",
                         resolver=resolver_name,
@@ -323,7 +315,7 @@ class CertExtractor(BaseClass):
                     _combined_path = _dir.joinpath("combined.pem")
 
                     if not _dir.exists():
-                        self.logger.info(f"Creating non-existent directory {_dir}")
+                        self.logger.info("Creating non-existent directory %s", _dir)
                         _dir.mkdir(parents=True, exist_ok=True)
                         _hash_check = False
 
@@ -364,7 +356,7 @@ class CertExtractor(BaseClass):
                             file.write(cert)
 
                     if not _hash_check:
-                        self.logger.info(f"Add domain {domain} to updated domains")
+                        self.logger.info("Add domain %s to updated domains", domain)
                         updated_domains.append(domain)
                         _file_names = dict(
                             privkey=str(_privkey_path),
@@ -381,7 +373,7 @@ class CertExtractor(BaseClass):
                             file_names=_file_names,
                         )
                     else:
-                        self.logger.info(f"Domain {domain} was not updated")
+                        self.logger.info("Domain %s was not updated", domain)
 
         self.hook(event="post")
         return updated_domains
@@ -395,7 +387,7 @@ class CertExtractor(BaseClass):
         cert_dir: str | None = None,
         file_names: dict | None = None,
     ) -> None:
-        """Function"""
+        """Hook invocator"""
 
         if domains is None:
             domains = []
